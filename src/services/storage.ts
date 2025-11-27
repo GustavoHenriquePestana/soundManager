@@ -6,6 +6,7 @@ const adapter = new HttpAdapter();
 export const storageService = {
   getAll: () => adapter.getAllEquipment(),
   save: (equipment: Equipment) => adapter.saveEquipment(equipment),
+  update: (id: string, equipment: Partial<Equipment>) => adapter.updateEquipment(id, equipment),
   delete: (id: string) => adapter.deleteEquipment(id),
   toggleStatus: (id: string, newStatus: EquipmentStatus) => adapter.updateEquipmentStatus(id, newStatus),
   addLog: (id: string, log: MaintenanceLog) => adapter.addMaintenanceLog(id, log),

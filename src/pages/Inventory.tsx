@@ -16,7 +16,7 @@ export const Inventory: React.FC<InventoryProps> = ({ equipment, userRole, onRef
   const [filterCategory, setFilterCategory] = useState('Todos');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  
+
   // Delete Confirmation State
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
@@ -30,8 +30,8 @@ export const Inventory: React.FC<InventoryProps> = ({ equipment, userRole, onRef
   });
 
   const filteredEquipment = equipment.filter(item => {
-    const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase()) || 
-                          item.brand.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase()) ||
+      item.brand.toLowerCase().includes(search.toLowerCase());
     const matchesCategory = filterCategory === 'Todos' || item.category === filterCategory;
     return matchesSearch && matchesCategory;
   });
@@ -58,23 +58,42 @@ export const Inventory: React.FC<InventoryProps> = ({ equipment, userRole, onRef
     }
   };
 
+  const handleEditClick = (item: Equipment) => {
+    setNewItem(item);
+    setIsFormOpen(true);
+  };
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    const itemToSave: Equipment = {
-      id: Date.now().toString(),
-      name: newItem.name || 'Sem nome',
-      brand: newItem.brand || 'Genérico',
-      category: newItem.category || 'Outros',
-      status: 'available',
-      purchaseDate: new Date().toISOString().split('T')[0],
-      logs: []
-    };
-    await storageService.save(itemToSave);
-    setSubmitting(false);
-    setIsFormOpen(false);
-    setNewItem({ name: '', brand: '', category: CATEGORIES[0] }); // Reset
-    onRefresh();
+
+    try {
+      if (newItem.id) {
+        // Update existing
+        await storageService.update(newItem.id, newItem);
+      } else {
+        // Create new
+        const itemToSave: Equipment = {
+          id: '', // Backend handles ID if empty, or we can leave it undefined in type but here we use empty string
+          name: newItem.name || 'Sem nome',
+          brand: newItem.brand || 'Genérico',
+          category: newItem.category || 'Outros',
+          status: 'available',
+          purchaseDate: newItem.purchaseDate || new Date().toISOString().split('T')[0],
+          logs: []
+        };
+        await storageService.save(itemToSave);
+      }
+
+      setIsFormOpen(false);
+      setNewItem({ name: '', brand: '', category: CATEGORIES[0] }); // Reset
+      onRefresh();
+    } catch (error) {
+      console.error("Failed to save item", error);
+      alert("Erro ao salvar item.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -94,8 +113,11 @@ export const Inventory: React.FC<InventoryProps> = ({ equipment, userRole, onRef
           <p className="text-slate-500">Gerencie todos os equipamentos da igreja.</p>
         </div>
         {userRole === 'admin' && (
-          <button 
-            onClick={() => setIsFormOpen(true)}
+          <button
+            onClick={() => {
+              setNewItem({ name: '', brand: '', category: CATEGORIES[0] });
+              setIsFormOpen(true);
+            }}
             className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
           >
             <Plus size={20} />
@@ -108,7 +130,7 @@ export const Inventory: React.FC<InventoryProps> = ({ equipment, userRole, onRef
       <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 mb-6 flex flex-col md:flex-row gap-4">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-          <input 
+          <input
             type="text"
             placeholder="Buscar por nome ou marca..."
             className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -117,15 +139,15 @@ export const Inventory: React.FC<InventoryProps> = ({ equipment, userRole, onRef
           />
         </div>
         <div className="relative">
-            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-            <select 
-              className="pl-10 pr-8 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white min-w-[200px]"
-              value={filterCategory}
-              onChange={(e) => setFilterCategory(e.target.value)}
-            >
-              <option value="Todos">Todas Categorias</option>
-              {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
+          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+          <select
+            className="pl-10 pr-8 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white min-w-[200px]"
+            value={filterCategory}
+            onChange={(e) => setFilterCategory(e.target.value)}
+          >
+            <option value="Todos">Todas Categorias</option>
+            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
         </div>
       </div>
 
@@ -144,19 +166,19 @@ export const Inventory: React.FC<InventoryProps> = ({ equipment, userRole, onRef
 
             <div className="border-t pt-4 flex items-center justify-between">
               {item.status !== 'maintenance' ? (
-                 <button 
-                 onClick={() => handleStatusToggle(item)}
-                 className={`text-sm font-medium flex items-center gap-1 ${item.status === 'available' ? 'text-blue-600 hover:text-blue-800' : 'text-green-600 hover:text-green-800'}`}
-               >
-                 {item.status === 'available' ? 'Marcar Em Uso' : 'Devolver'}
-               </button>
+                <button
+                  onClick={() => handleStatusToggle(item)}
+                  className={`text-sm font-medium flex items-center gap-1 ${item.status === 'available' ? 'text-blue-600 hover:text-blue-800' : 'text-green-600 hover:text-green-800'}`}
+                >
+                  {item.status === 'available' ? 'Marcar Em Uso' : 'Devolver'}
+                </button>
               ) : (
                 <span className="text-sm text-red-500 italic">Em reparo</span>
               )}
 
               <div className="flex items-center gap-2">
                 {item.status !== 'maintenance' && (
-                  <button 
+                  <button
                     title="Reportar problema"
                     onClick={() => onReport(item)}
                     className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
@@ -164,16 +186,16 @@ export const Inventory: React.FC<InventoryProps> = ({ equipment, userRole, onRef
                     <AlertOctagon size={18} />
                   </button>
                 )}
-                
+
                 {userRole === 'admin' && (
                   <>
-                    <button 
-                       onClick={() => onEdit(item)}
-                       className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                    <button
+                      onClick={() => handleEditClick(item)}
+                      className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
                     >
                       <PenSquare size={18} />
                     </button>
-                    <button 
+                    <button
                       onClick={() => handleDeleteClick(item.id)}
                       className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
                     >
@@ -201,18 +223,18 @@ export const Inventory: React.FC<InventoryProps> = ({ equipment, userRole, onRef
             <form onSubmit={handleCreate} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Nome</label>
-                <input required type="text" className="w-full border rounded-lg p-2" 
-                  value={newItem.name} onChange={e => setNewItem({...newItem, name: e.target.value})} />
+                <input required type="text" className="w-full border rounded-lg p-2"
+                  value={newItem.name} onChange={e => setNewItem({ ...newItem, name: e.target.value })} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Marca</label>
-                <input required type="text" className="w-full border rounded-lg p-2" 
-                  value={newItem.brand} onChange={e => setNewItem({...newItem, brand: e.target.value})} />
+                <input required type="text" className="w-full border rounded-lg p-2"
+                  value={newItem.brand} onChange={e => setNewItem({ ...newItem, brand: e.target.value })} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Categoria</label>
                 <select className="w-full border rounded-lg p-2"
-                  value={newItem.category} onChange={e => setNewItem({...newItem, category: e.target.value})}>
+                  value={newItem.category} onChange={e => setNewItem({ ...newItem, category: e.target.value })}>
                   {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
@@ -239,13 +261,13 @@ export const Inventory: React.FC<InventoryProps> = ({ equipment, userRole, onRef
               Esta ação é restrita a administradores e não poderá ser desfeita. Tem certeza?
             </p>
             <div className="flex gap-3 justify-center">
-              <button 
+              <button
                 onClick={() => setItemToDelete(null)}
                 className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
               >
                 Cancelar
               </button>
-              <button 
+              <button
                 onClick={confirmDelete}
                 className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-sm"
               >

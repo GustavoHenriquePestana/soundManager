@@ -121,6 +121,40 @@ def create_equipment():
     db.session.commit()
     return jsonify(item.to_dict())
 
+    db.session.commit()
+    return jsonify(item.to_dict())
+
+@api.route('/equipment/<id>', methods=['PUT'])
+@login_required
+def update_equipment(id):
+    item = Equipment.query.get_or_404(id)
+    data = request.json
+    
+    item.name = data.get('name', item.name)
+    item.brand = data.get('brand', item.brand)
+    item.category = data.get('category', item.category)
+    # Status and purchase_date can also be updated if needed, but status has its own endpoint
+    if 'purchaseDate' in data:
+        item.purchase_date = data['purchaseDate']
+        
+    db.session.commit()
+    return jsonify(item.to_dict())
+
+@api.route('/equipment/<id>', methods=['DELETE'])
+@login_required
+@admin_required
+def delete_equipment(id):
+    item = Equipment.query.get_or_404(id)
+    
+    # Optional: Delete related logs or notifications? 
+    # For now, we just delete the item. SQLAlchemy might cascade if configured, 
+    # but we didn't configure cascade in models.py. 
+    # Let's just delete the item.
+    
+    db.session.delete(item)
+    db.session.commit()
+    return jsonify({"success": True})
+
 @api.route('/equipment/<id>/status', methods=['PUT'])
 @login_required
 def update_status(id):

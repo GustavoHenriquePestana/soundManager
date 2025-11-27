@@ -27,9 +27,16 @@ export class HttpAdapter implements IDataService {
         });
     }
 
+    async updateEquipment(id: string, equipment: Partial<Equipment>): Promise<Equipment> {
+        return this.request<Equipment>(`/equipment/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(equipment)
+        });
+    }
+
     async deleteEquipment(id: string): Promise<void> {
-        // Not implemented in backend demo yet, but interface requires it
-        console.warn('Delete not implemented in backend demo');
+        await this.request(`/equipment/${id}`, { method: 'DELETE' });
     }
 
     async updateEquipmentStatus(id: string, status: EquipmentStatus): Promise<Equipment | undefined> {
